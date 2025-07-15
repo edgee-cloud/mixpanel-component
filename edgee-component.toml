@@ -1,0 +1,25 @@
+manifest-version = 1
+
+[component]
+name = "Mixpanel"
+version = "0.1.0"
+type = "data-collection"
+language = "Rust"
+category = "data-collection"
+subcategory = "analytics"
+description = "Mixpanel component built in Rust"
+documentation = "https://github.com/edgee-cloud/mixpanel-component"
+repository = "https://github.com/edgee-cloud/mixpanel-component"
+wit-version = "1.0.0"
+icon-path = "mixpanel.png"
+
+[component.build]
+command = "cargo build --target wasm32-wasip2 --release --target-dir ./target"
+output_path = "target/wasm32-wasip2/release/example_rust_component.wasm"
+
+[component.settings.mixpanel_token]
+title = "Mixpanel Project API Secret"
+type = "string"
+required = true
+description = "Your Mixpanel API Secret. You can get it in your project settings."
+secret = true
