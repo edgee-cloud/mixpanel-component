@@ -15,11 +15,30 @@ icon-path = "mixpanel.png"
 
 [component.build]
 command = "cargo build --target wasm32-wasip2 --release --target-dir ./target"
-output_path = "target/wasm32-wasip2/release/example_rust_component.wasm"
+output_path = "target/wasm32-wasip2/release/mixpanel_component.wasm"
 
-[component.settings.mixpanel_token]
+[component.settings.api_secret]
 title = "Mixpanel Project API Secret"
 type = "string"
 required = true
-description = "Your Mixpanel API Secret. You can get it in your project settings."
+description = "Your Mixpanel API Secret. You can get it in your project settings. Don't mistake it with the Project Token."
 secret = true
+
+[component.settings.project_token]
+title = "Mixpanel Project Token"
+type = "string"
+required = true
+description = "Used for Engage API to update user profiles. You can find it in your Mixpanel project settings. Don't mistake it with the API Secret."
+secret = true
+
+[component.settings.project_id]
+title = "Mixpanel Project ID"
+type = "string"
+description = "Optional project ID for strict import validation. Used in the query string."
+
+[component.settings.region]
+title = "Mixpanel Project Region"
+type = "string"
+description = "Choose from: api, api-eu, or api-in"
+required = false
+choices = ["api", "api-eu", "api-in"]

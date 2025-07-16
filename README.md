@@ -1,68 +1,74 @@
 # 🧠 Mixpanel Component for Edgee
 
-This is a Rust-based Edgee component that integrates Mixpanel analytics using the Edgee Data Collection protocol. It allows you to track user events, page views, and user identification, while sending them directly to Mixpanel via the `/track` and `/engage` APIs.
+This is a Rust-based Edgee component that integrates Mixpanel analytics using the Edgee Data Collection protocol. It allows you to track user events, page views, and identify users, sending data to Mixpanel via the `/import` and `/engage` APIs.
 
 ---
 
 ## ✨ Features
 
-- ✅ Track user events (`track`)
+- ✅ Track custom user events (`track`)
 - ✅ Track page views (`page`)
 - ✅ Identify and update users (`user`)
-- ✅ Highly optimized for execution at the edge
+- ✅ Built for Edge execution: fast, secure, serverless
 
 ---
 
 ## 🔧 Settings
 
-This component requires one setting:
+This component requires the following settings:
 
-| Key              | Type   | Required | Description                          |
-|------------------|--------|----------|--------------------------------------|
-| `mixpanel_token` | string | ✅       | Your Mixpanel project token (see below) |
-
-You can find your project token in your Mixpanel project settings under **Project Settings > Access Keys**.
+| Key              | Type   | Required | Description                                                                 |
+|------------------|--------|----------|-----------------------------------------------------------------------------|
+| `api_secret`     | string | ✅       | Your Mixpanel **API Secret** (from Project Settings > Access Keys)         |
+| `project_token`  | string | ✅       | Your Mixpanel **Project Token** (used by the Engage API)                   |
+| `project_id`     | string | ❌       | Optional Mixpanel Project ID (used for strict mode on import)              |
+| `region`         | string | ❌       | Mixpanel region: `api`, `api-eu`, or `api-us` (defaults to `api`)          |
 
 ---
 
 ## 🧪 Testing Locally
 
-You can test this component using the Edgee CLI:
-
-### Build the component
+### 🛠️ Build the component
 
 ```bash
 edgee component build
 ```
 
-### Run tests
+### ✅ Run unit tests
+
 ```bash
 cargo test
 ```
-### Run live test with event simulation
+### 🔍 Run a live test with simulated events
 
 ```bash
 edgee components test \
   --event-type track \
-  --settings mixpanel_token=YOUR_TOKEN \
+  --settings api_secret=YOUR_API_SECRET,project_token=YOUR_PROJECT_TOKEN,project_id=YOUR_PROJECT_ID,region=api-eu \
   --make-http-request
 ```
-You can also test page and user events by changing --event-type.
+Replace event-type with page or user to test other event types.
 
-### 🚀 Deploying to Edgee Registry
+### 🚀 Deploy to Edgee Registry
 Once tested and ready, you can publish your component:
 ```bash
 edgee components publish
 ```
 ### 📂 Project Structure
 ```text
+mixpanel-component/
 ├── src/
-│   └── lib.rs               # Component logic
-├── Cargo.toml               # Rust dependencies and metadata
-├── edgee-component.toml     # Component manifest for Edgee
-├── component.wasm           # Build output
+│   └── lib.rs                 # Main component logic
+├── target/
+│   └── wasm32-wasip2/
+│       └── release/
+│           └── mixpanel_component.wasm  # Built WebAssembly output
+├── mixpanel.png               # Component icon
+├── Cargo.toml                 # Rust dependencies
+└── edgee-component.toml       # Edgee manifest
 ```
 ### 📚 Learn More
 
-- [Mixpanel HTTP Tracking API](https://developer.mixpanel.com/reference/track-event)
+- [Mixpanel HTTP import API](https://developer.mixpanel.com/reference/import-events)
+- [Mixpanel HTTP Engage API](https://developer.mixpanel.com/reference/profile-set)
 - [Edgee Developer Guide](Mixpanel HTTP Tracking API)

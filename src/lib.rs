@@ -2,6 +2,8 @@ use crate::exports::edgee::components::data_collection::Data;
 use crate::exports::edgee::components::data_collection::{Dict, EdgeeRequest, Event, HttpMethod};
 use exports::edgee::components::data_collection::Guest;
 use std::collections::HashMap;
+use base64::engine::general_purpose::STANDARD;
+use base64::Engine;
 
 wit_bindgen::generate!({world: "data-collection", path: ".edgee/wit", generate_all});
 export!(Component);
@@ -39,12 +41,11 @@ impl Guest for Component {
                 props.insert(k.clone(), v.clone());
             }
 
-            return build_mixpanel_request(&edgee_event, &settings.token, "Page View", props);
+            return build_mixpanel_request(&edgee_event, &settings, "Page View", props);
         }
 
         Err("Invalid event type for page".into())
     }
-
 
     #[allow(unused_variables)]
     fn track(edgee_event: Event, settings_dict: Dict) -> Result<EdgeeRequest, String> {
@@ -55,7 +56,7 @@ impl Guest for Component {
             for (k, v) in &data.properties {
                 props.insert(k.clone(), v.clone());
             }
-            return build_mixpanel_request(&edgee_event, &settings.token, &data.name, props);
+            return build_mixpanel_request(&edgee_event, &settings, &data.name, props);
         }
 
         Err("Invalid event type for track".into())
@@ -64,24 +65,30 @@ impl Guest for Component {
     #[allow(unused_variables)]
     fn user(edgee_event: Event, settings_dict: Dict) -> Result<EdgeeRequest, String> {
         let settings = Settings::new(settings_dict).map_err(|e| e.to_string())?;
-
-        let mut props = HashMap::new();
         let user = &edgee_event.context.user;
 
-        props.insert("user_id".into(), user.user_id.clone());
-        props.insert("anonymous_id".into(), user.anonymous_id.clone());
+        let distinct_id = if user.user_id.trim().is_empty() {
+            user.edgee_id.clone()
+        } else {
+            user.user_id.clone()
+        };
 
+        let mut props = HashMap::new();
+        props.insert("$distinct_id".into(), distinct_id.clone());
+        props.insert("$ip".into(), edgee_event.context.client.ip.clone());
         for (k, v) in &user.properties {
             props.insert(k.clone(), v.clone());
         }
 
-        build_mixpanel_request(&edgee_event, &settings.token, "User Identified", props)
+        build_mixpanel_user_request(&settings, distinct_id, props)
     }
-
 }
 
 pub struct Settings {
-    pub token: String,
+    pub api_secret: String,
+    pub project_token: String,
+    pub project_id: Option<String>,
+    pub region: String,
 }
 
 impl Settings {
@@ -91,15 +98,34 @@ impl Settings {
             .map(|(key, value)| (key.to_string(), value.to_string()))
             .collect();
 
-        let token = settings_map
-            .get("mixpanel_token")
+        let api_secret = settings_map
+            .get("api_secret")
             .filter(|t| !t.trim().is_empty())
-            .ok_or_else(|| anyhow::anyhow!("Missing or empty 'mixpanel_token' setting"))?
+            .ok_or_else(|| anyhow::anyhow!("Missing or empty 'api_secret' setting"))?
             .to_string();
 
-        Ok(Self { token })
+        let project_token = settings_map
+            .get("project_token")
+            .filter(|t| !t.trim().is_empty())
+            .ok_or_else(|| anyhow::anyhow!("Missing or empty 'project_token' setting"))?
+            .to_string();
+
+        let project_id = settings_map.get("project_id").cloned();
+
+        let region = settings_map
+            .get("region")
+            .cloned()
+            .unwrap_or_else(|| "api".to_string());
+
+        Ok(Self {
+            api_secret,
+            project_token,
+            project_id,
+            region,
+        })
     }
 }
+
 
 #[cfg(test)]
 mod tests {
@@ -109,7 +135,6 @@ mod tests {
         Campaign, Client, Context, Data, EventType, PageData, Session, UserData,
     };
     use exports::edgee::components::data_collection::Consent;
-    use pretty_assertions::assert_eq;
     use uuid::Uuid;
 
     fn sample_user_data(edgee_id: String) -> UserData {
@@ -215,14 +240,19 @@ mod tests {
             false,
         );
 
-        let settings = vec![("mixpanel_token".to_string(), "abc123".to_string())];
+        let settings = vec![
+            ("api_secret".to_string(), "abc123".to_string()),
+            ("project_token".to_string(), "tok123".to_string()),
+            ("region".to_string(), "api-eu".to_string()),
+            ("project_id".to_string(), "123456".to_string()),
+        ];
         let result = Component::user(event, settings);
 
         assert!(result.is_ok());
         let req = result.unwrap();
-        assert_eq!(req.url, "https://api.mixpanel.com/track");
-        assert!(req.body.contains("\"event\":\"User Identified\""));
-        assert!(req.body.contains("\"token\":\"abc123\""));
+        assert!(req.url.contains("https://api-eu.mixpanel.com/engage"));
+        assert!(req.body.contains("\"$token\":\"tok123\""));
+        assert!(req.body.contains("\"$distinct_id\":\"123\""));
     }
 
     #[test]
@@ -242,14 +272,20 @@ mod tests {
             });
         }
 
-        let settings = vec![("mixpanel_token".to_string(), "xyz456".to_string())];
+        let settings = vec![
+            ("api_secret".to_string(), "abc123".to_string()),
+            ("project_token".to_string(), "tok123".to_string()),
+            ("region".to_string(), "api".to_string()),
+            ("project_id".to_string(), "7891011".to_string()),
+        ];
         let result = Component::track(event, settings);
 
         assert!(result.is_ok());
         let req = result.unwrap();
-        assert_eq!(req.url, "https://api.mixpanel.com/track");
+        assert!(req.url.contains("https://api.mixpanel.com/import"));
+        assert!(req.url.contains("project_id=7891011"));
         assert!(req.body.contains("\"event\":\"Signup\""));
-        assert!(req.body.contains("\"token\":\"xyz456\""));
+        assert!(req.body.contains("\"token\":\"abc123\""));
     }
 
     #[test]
@@ -260,23 +296,42 @@ mod tests {
             "fr".to_string(),
             true,
         );
-        let settings = vec![("mixpanel_token".to_string(), "token789".to_string())];
+
+        let settings = vec![
+            ("api_secret".to_string(), "abc123".to_string()),
+            ("project_token".to_string(), "tok123".to_string()),
+            ("region".to_string(), "api-in".to_string()),
+            ("project_id".to_string(), "987654".to_string()),
+        ];
         let result = Component::page(event, settings);
 
         assert!(result.is_ok());
         let req = result.unwrap();
-        assert_eq!(req.url, "https://api.mixpanel.com/track");
+        assert!(req.url.contains("https://api-in.mixpanel.com/import"));
+        assert!(req.url.contains("project_id=987654"));
         assert!(req.body.contains("\"event\":\"Page View\""));
-        assert!(req.body.contains("\"token\":\"token789\""));
+        assert!(req.body.contains("\"token\":\"abc123\""));
         assert!(req.body.contains("\"url\""));
     }
 }
 
-fn build_mixpanel_request(event: &Event, token: &str, name: &str, properties: HashMap<String, String>) -> Result<EdgeeRequest, String> {
+fn build_mixpanel_request(
+    event: &Event,
+    settings: &Settings,
+    name: &str,
+    properties: HashMap<String, String>,
+) -> Result<EdgeeRequest, String> {
     let mut props = serde_json::Map::new();
 
-    props.insert("token".into(), token.into());
-    props.insert("distinct_id".into(), event.context.user.user_id.clone().into());
+    let user = &event.context.user;
+    let distinct_id = if user.user_id.trim().is_empty() {
+        user.edgee_id.clone()
+    } else {
+        user.user_id.clone()
+    };
+
+    props.insert("token".into(), settings.api_secret.clone().into());
+    props.insert("distinct_id".into(), distinct_id.into());
     props.insert("time".into(), serde_json::json!(event.timestamp));
     props.insert("$insert_id".into(), serde_json::json!(event.uuid.clone()));
 
@@ -291,14 +346,50 @@ fn build_mixpanel_request(event: &Event, token: &str, name: &str, properties: Ha
 
     let payload = serde_json::json!([event_obj]);
 
-    log::info!("Sending Mixpanel event '{}': {}", name, payload.to_string());
+    let mut url = format!("https://{}.mixpanel.com/import?strict=1", settings.region);
+    if let Some(id) = &settings.project_id {
+        url.push_str(&format!("&project_id={}", id));
+    }
+
+    let auth = format!("Basic {}", STANDARD.encode(format!("{}:", settings.api_secret)));
 
     Ok(EdgeeRequest {
         method: HttpMethod::Post,
-        url: "https://api.mixpanel.com/track".to_string(),
+        url,
         headers: vec![
             ("Content-Type".into(), "application/json".into()),
-            ("Accept".into(), "text/plain".into()),
+            ("Accept".into(), "application/json".into()),
+            ("Authorization".into(), auth),
+        ],
+        body: payload.to_string(),
+        forward_client_headers: false,
+    })
+}
+
+fn build_mixpanel_user_request(
+    settings: &Settings,
+    distinct_id: String,
+    props: HashMap<String, String>,
+) -> Result<EdgeeRequest, String> {
+    let set_props: serde_json::Map<String, serde_json::Value> = props
+        .into_iter()
+        .map(|(k, v)| (k, serde_json::Value::String(v)))
+        .collect();
+
+    let payload = serde_json::json!([{
+        "$distinct_id": distinct_id,
+        "$token": settings.project_token,
+        "$set": set_props
+    }]);
+
+    let url = format!("https://{}.mixpanel.com/engage", settings.region);
+
+    Ok(EdgeeRequest {
+        method: HttpMethod::Post,
+        url,
+        headers: vec![
+            ("Content-Type".into(), "application/json".into()),
+            ("Accept".into(), "application/json".into()),
         ],
         body: payload.to_string(),
         forward_client_headers: false,
