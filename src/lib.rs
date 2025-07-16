@@ -349,11 +349,11 @@ fn build_mixpanel_request(
 
     let mut url = format!("https://{}.mixpanel.com/import?strict=1", settings.region);
     if let Some(id) = &settings.project_id {
-        url.push_str(&format!("&project_id={}", id));
+        url.push_str(&format!("&project_id={id}"));
     }
 
     let encoded = STANDARD.encode(format!("{}:", settings.api_secret).as_bytes());
-    let auth = format!("Basic {}", encoded);
+    let auth = format!("Basic {encoded}");
 
     Ok(EdgeeRequest {
         method: HttpMethod::Post,
