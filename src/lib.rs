@@ -352,7 +352,7 @@ fn build_mixpanel_request(
         url.push_str(&format!("&project_id={}", id));
     }
 
-    let encoded = STANDARD.encode(format!("{}:", settings.api_secret));
+    let encoded = STANDARD.encode(format!("{}:", settings.api_secret).as_bytes());
     let auth = format!("Basic {}", encoded);
 
     Ok(EdgeeRequest {
