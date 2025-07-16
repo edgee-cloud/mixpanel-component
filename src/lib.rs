@@ -126,6 +126,88 @@ impl Settings {
     }
 }
 
+fn build_mixpanel_request(
+    event: &Event,
+    settings: &Settings,
+    name: &str,
+    properties: HashMap<String, String>,
+) -> Result<EdgeeRequest, String> {
+    let mut props = serde_json::Map::new();
+
+    let user = &event.context.user;
+    let distinct_id = if user.user_id.trim().is_empty() {
+        user.edgee_id.clone()
+    } else {
+        user.user_id.clone()
+    };
+
+    props.insert("token".into(), settings.api_secret.clone().into());
+    props.insert("distinct_id".into(), distinct_id.into());
+    props.insert("time".into(), serde_json::json!(event.timestamp));
+    props.insert("$insert_id".into(), serde_json::json!(event.uuid.clone()));
+
+    for (k, v) in properties {
+        props.insert(k, v.into());
+    }
+
+    let event_obj = serde_json::json!({
+        "event": name,
+        "properties": props
+    });
+
+    let payload = serde_json::json!([event_obj]);
+
+    let mut url = format!("https://{}.mixpanel.com/import?strict=1", settings.region);
+    if let Some(id) = &settings.project_id {
+        url.push_str(&format!("&project_id={id}"));
+    }
+
+    let encoded = STANDARD.encode(format!("{}:", settings.api_secret).as_bytes());
+    let auth = format!("Basic {encoded}");
+
+    Ok(EdgeeRequest {
+        method: HttpMethod::Post,
+        url,
+        headers: vec![
+            ("Content-Type".into(), "application/json".into()),
+            ("Accept".into(), "application/json".into()),
+            ("Authorization".into(), auth),
+        ],
+        body: payload.to_string(),
+        forward_client_headers: false,
+    })
+}
+
+fn build_mixpanel_user_request(
+    settings: &Settings,
+    distinct_id: String,
+    props: HashMap<String, String>,
+) -> Result<EdgeeRequest, String> {
+    let set_props: serde_json::Map<String, serde_json::Value> = props
+        .into_iter()
+        .map(|(k, v)| (k, serde_json::Value::String(v)))
+        .collect();
+
+    let payload = serde_json::json!([{
+        "$distinct_id": distinct_id,
+        "$token": settings.project_token,
+        "$set": set_props
+    }]);
+
+    let url = format!("https://{}.mixpanel.com/engage", settings.region);
+
+    Ok(EdgeeRequest {
+        method: HttpMethod::Post,
+        url,
+        headers: vec![
+            ("Content-Type".into(), "application/json".into()),
+            ("Accept".into(), "application/json".into()),
+        ],
+        body: payload.to_string(),
+        forward_client_headers: true,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -314,86 +396,4 @@ mod tests {
         assert!(req.body.contains("\"token\":\"abc123\""));
         assert!(req.body.contains("\"url\""));
     }
-}
-
-fn build_mixpanel_request(
-    event: &Event,
-    settings: &Settings,
-    name: &str,
-    properties: HashMap<String, String>,
-) -> Result<EdgeeRequest, String> {
-    let mut props = serde_json::Map::new();
-
-    let user = &event.context.user;
-    let distinct_id = if user.user_id.trim().is_empty() {
-        user.edgee_id.clone()
-    } else {
-        user.user_id.clone()
-    };
-
-    props.insert("token".into(), settings.api_secret.clone().into());
-    props.insert("distinct_id".into(), distinct_id.into());
-    props.insert("time".into(), serde_json::json!(event.timestamp));
-    props.insert("$insert_id".into(), serde_json::json!(event.uuid.clone()));
-
-    for (k, v) in properties {
-        props.insert(k, v.into());
-    }
-
-    let event_obj = serde_json::json!({
-        "event": name,
-        "properties": props
-    });
-
-    let payload = serde_json::json!([event_obj]);
-
-    let mut url = format!("https://{}.mixpanel.com/import?strict=1", settings.region);
-    if let Some(id) = &settings.project_id {
-        url.push_str(&format!("&project_id={id}"));
-    }
-
-    let encoded = STANDARD.encode(format!("{}:", settings.api_secret).as_bytes());
-    let auth = format!("Basic {encoded}");
-
-    Ok(EdgeeRequest {
-        method: HttpMethod::Post,
-        url,
-        headers: vec![
-            ("Content-Type".into(), "application/json".into()),
-            ("Accept".into(), "application/json".into()),
-            ("Authorization".into(), auth),
-        ],
-        body: payload.to_string(),
-        forward_client_headers: false,
-    })
-}
-
-fn build_mixpanel_user_request(
-    settings: &Settings,
-    distinct_id: String,
-    props: HashMap<String, String>,
-) -> Result<EdgeeRequest, String> {
-    let set_props: serde_json::Map<String, serde_json::Value> = props
-        .into_iter()
-        .map(|(k, v)| (k, serde_json::Value::String(v)))
-        .collect();
-
-    let payload = serde_json::json!([{
-        "$distinct_id": distinct_id,
-        "$token": settings.project_token,
-        "$set": set_props
-    }]);
-
-    let url = format!("https://{}.mixpanel.com/engage", settings.region);
-
-    Ok(EdgeeRequest {
-        method: HttpMethod::Post,
-        url,
-        headers: vec![
-            ("Content-Type".into(), "application/json".into()),
-            ("Accept".into(), "application/json".into()),
-        ],
-        body: payload.to_string(),
-        forward_client_headers: false,
-    })
 }

@@ -17,12 +17,12 @@ This is a Rust-based Edgee component that integrates Mixpanel analytics using th
 
 This component requires the following settings:
 
-| Key              | Type   | Required | Description                                                                 |
-|------------------|--------|----------|-----------------------------------------------------------------------------|
-| `api_secret`     | string | ✅       | Your Mixpanel **API Secret** (from Project Settings > Access Keys)         |
-| `project_token`  | string | ✅       | Your Mixpanel **Project Token** (used by the Engage API)                   |
-| `project_id`     | string | ❌       | Optional Mixpanel Project ID (used for strict mode on import)              |
-| `region`         | string | ❌       | Mixpanel region: `api`, `api-eu`, or `api-us` (defaults to `api`)          |
+| Key              | Type   | Required | Description                                                        |
+|------------------|--------|----------|--------------------------------------------------------------------|
+| `api_secret`     | string | ✅       | Your Mixpanel **API Secret** (from Project Settings > Access Keys) |
+| `project_token`  | string | ✅       | Your Mixpanel **Project Token** (used by the Engage API)           |
+| `project_id`     | string | ❌       | Optional Mixpanel Project ID (used for strict mode on import)      |
+| `region`         | string | ❌       | Mixpanel region: `api`, `api-eu`, or `api-in` (defaults to `api`)  |
 
 ---
 
@@ -52,7 +52,7 @@ Replace event-type with page or user to test other event types.
 ### 🚀 Deploy to Edgee Registry
 Once tested and ready, you can publish your component:
 ```bash
-edgee components publish
+edgee components push
 ```
 ### 📂 Project Structure
 ```text
@@ -71,4 +71,4 @@ mixpanel-component/
 
 - [Mixpanel HTTP import API](https://developer.mixpanel.com/reference/import-events)
 - [Mixpanel HTTP Engage API](https://developer.mixpanel.com/reference/profile-set)
-- [Edgee Developer Guide](Mixpanel HTTP Tracking API)
+- [Edgee Developer Guide](https://docs.edgee.com/developer-guide)

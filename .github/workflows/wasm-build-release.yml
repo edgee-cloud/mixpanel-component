@@ -21,9 +21,6 @@ jobs:
       - uses: edgee-cloud/install-edgee-cli@v0.2.0
       - run: edgee component build
 
-      - name: Copy .wasm to root for release upload
-        run: cp ./target/wasm32-wasip2/release/mixpanel_component.wasm ./mixpanel_component.wasm
-
       - name: Upload WASM to release
         uses: actions/upload-release-asset@v1
         env:

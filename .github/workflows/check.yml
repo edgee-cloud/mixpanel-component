@@ -58,8 +58,6 @@ jobs:
           target: wasm32-wasip2
       - uses: edgee-cloud/install-edgee-cli@v0.2.0
       - run: edgee component build
-      - name: Copy .wasm to root
-        run: cp ./target/wasm32-wasip2/release/mixpanel_component.wasm ./mixpanel_component.wasm
       - name: Verify .wasm file exists
         run: |
           if [ ! -f "./mixpanel_component.wasm" ]; then
