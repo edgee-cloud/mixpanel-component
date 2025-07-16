@@ -20,14 +20,19 @@ jobs:
           target: wasm32-wasip2
       - uses: edgee-cloud/install-edgee-cli@v0.2.0
       - run: edgee component build
+
+      - name: Copy .wasm to root for release upload
+        run: cp ./target/wasm32-wasip2/release/mixpanel_component.wasm ./mixpanel_component.wasm
+
       - name: Upload WASM to release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./amplitude.wasm
-          asset_name: amplitude.wasm
+          asset_path: ./mixpanel_component.wasm
+          asset_name: mixpanel_component.wasm
           asset_content_type: application/wasm
+
       - name: Push to Edgee Component Registry
         run: edgee component push edgee --yes --changelog "${{ github.event.release.body }}"
