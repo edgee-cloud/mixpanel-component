@@ -1,9 +1,9 @@
 use crate::exports::edgee::components::data_collection::Data;
 use crate::exports::edgee::components::data_collection::{Dict, EdgeeRequest, Event, HttpMethod};
-use exports::edgee::components::data_collection::Guest;
-use std::collections::HashMap;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
+use exports::edgee::components::data_collection::Guest;
+use std::collections::HashMap;
 
 wit_bindgen::generate!({world: "data-collection", path: ".edgee/wit", generate_all});
 export!(Component);
@@ -125,7 +125,6 @@ impl Settings {
         })
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -265,11 +264,13 @@ mod tests {
         );
 
         if let Data::Page(page_data) = event.data {
-            event.data = Data::Track(crate::exports::edgee::components::data_collection::TrackData {
-                name: "Signup".to_string(),
-                properties: page_data.properties.clone(),
-                products: vec![],
-            });
+            event.data = Data::Track(
+                crate::exports::edgee::components::data_collection::TrackData {
+                    name: "Signup".to_string(),
+                    properties: page_data.properties.clone(),
+                    products: vec![],
+                },
+            );
         }
 
         let settings = vec![
@@ -351,7 +352,8 @@ fn build_mixpanel_request(
         url.push_str(&format!("&project_id={}", id));
     }
 
-    let auth = format!("Basic {}", STANDARD.encode(format!("{}:", settings.api_secret)));
+    let encoded = STANDARD.encode(format!("{}:", settings.api_secret));
+    let auth = format!("Basic {}", encoded);
 
     Ok(EdgeeRequest {
         method: HttpMethod::Post,
@@ -395,4 +397,3 @@ fn build_mixpanel_user_request(
         forward_client_headers: false,
     })
 }
-
