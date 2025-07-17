@@ -50,4 +50,4 @@ title = "Mixpanel Project Region"
 type = "string"
 description = "Choose from: api, api-eu, or api-in"
 required = false
-choices = ["api", "api-eu", "api-in"]
+options = ["api", "api-eu", "api-in"]
