@@ -8,7 +8,9 @@
   </a>
 </p>
 </div>
+
 <h1 align="center">Mixpanel component for Edgee</h1>
+
 [![Coverage Status](https://coveralls.io/repos/github/edgee-cloud/mixpanel-component/badge.svg)](https://coveralls.io/github/edgee-cloud/mixpanel-component)
 [![GitHub issues](https://img.shields.io/github/issues/edgee-cloud/mixpanel-component.svg)](https://github.com/edgee-cloud/mixpanel-component/issues)
 [![Edgee Component Registry](https://img.shields.io/badge/Edgee_Component_Registry-Public-green.svg)](https://www.edgee.cloud/edgee/mixpanel)
