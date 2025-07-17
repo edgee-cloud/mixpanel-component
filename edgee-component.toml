@@ -2,7 +2,7 @@ manifest-version = 1
 
 [component]
 name = "Mixpanel"
-version = "0.1.0"
+version = "1.0.0"
 type = "data-collection"
 language = "Rust"
 category = "data-collection"
@@ -23,8 +23,8 @@ wit-version = "1.0.0"
 icon-path = "mixpanel.png"
 
 [component.build]
-command = "cargo build --target wasm32-wasip2 --release --target-dir ./target && mv ./target/wasm32-wasip2/release/mixpanel_component.wasm ./mixpanel_component.wasm"
-output_path = "mixpanel_component.wasm"
+command = "cargo build --target wasm32-wasip2 --release --target-dir ./target && mv ./target/wasm32-wasip2/release/mixpanel.wasm ./mixpanel.wasm"
+output_path = "mixpanel.wasm"
 
 [component.settings.api_secret]
 title = "Mixpanel Project API Secret"

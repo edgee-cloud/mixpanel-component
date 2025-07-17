@@ -27,8 +27,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./mixpanel_component.wasm
-          asset_name: mixpanel_component.wasm
+          asset_path: ./mixpanel.wasm
+          asset_name: mixpanel.wasm
           asset_content_type: application/wasm
 
       - name: Push to Edgee Component Registry

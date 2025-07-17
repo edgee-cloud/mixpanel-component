@@ -14,7 +14,7 @@ This is a Rust-based Edgee component that integrates Mixpanel analytics using th
 ---
 
 ## 🔧 Settings
-
+ 
 This component requires the following settings:
 
 | Key              | Type   | Required | Description                                                        |
@@ -62,7 +62,7 @@ mixpanel-component/
 ├── target/
 │   └── wasm32-wasip2/
 │       └── release/
-│           └── mixpanel_component.wasm  # Built WebAssembly output
+│           └── mixpanel.wasm  # Built WebAssembly output
 ├── mixpanel.png               # Component icon
 ├── Cargo.toml                 # Rust dependencies
 └── edgee-component.toml       # Edgee manifest
@@ -71,4 +71,4 @@ mixpanel-component/
 
 - [Mixpanel HTTP import API](https://developer.mixpanel.com/reference/import-events)
 - [Mixpanel HTTP Engage API](https://developer.mixpanel.com/reference/profile-set)
-- [Edgee Developer Guide](https://docs.edgee.com/developer-guide)
+- [Edgee Developer Guide](https://www.edgee.cloud/docs/services/registry/developer-guide)

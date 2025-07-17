@@ -23,7 +23,6 @@ struct Component;
 */
 
 impl Guest for Component {
-    #[allow(unused_variables)]
     fn page(edgee_event: Event, settings_dict: Dict) -> Result<EdgeeRequest, String> {
         let settings = Settings::new(settings_dict).map_err(|e| e.to_string())?;
 
@@ -47,7 +46,6 @@ impl Guest for Component {
         Err("Invalid event type for page".into())
     }
 
-    #[allow(unused_variables)]
     fn track(edgee_event: Event, settings_dict: Dict) -> Result<EdgeeRequest, String> {
         let settings = Settings::new(settings_dict).map_err(|e| e.to_string())?;
         let mut props = HashMap::new();
@@ -62,7 +60,6 @@ impl Guest for Component {
         Err("Invalid event type for track".into())
     }
 
-    #[allow(unused_variables)]
     fn user(edgee_event: Event, settings_dict: Dict) -> Result<EdgeeRequest, String> {
         let settings = Settings::new(settings_dict).map_err(|e| e.to_string())?;
         let user = &edgee_event.context.user;

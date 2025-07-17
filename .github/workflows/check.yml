@@ -60,8 +60,8 @@ jobs:
       - run: edgee component build
       - name: Verify .wasm file exists
         run: |
-          if [ ! -f "./mixpanel_component.wasm" ]; then
-            echo "❌ Error: mixpanel_component.wasm not found" >&2
+          if [ ! -f "./mixpanel.wasm" ]; then
+            echo "❌ Error: mixpanel.wasm not found" >&2
             exit 1
           fi
   test:
