@@ -1,4 +1,17 @@
-# 🧠 Mixpanel Component for Edgee
+<div align="center">
+<p align="center">
+  <a href="https://www.edgee.cloud">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://cdn.edgee.cloud/img/component-dark.svg">
+      <img src="https://cdn.edgee.cloud/img/component.svg" height="100" alt="Edgee">
+    </picture>
+  </a>
+</p>
+</div>
+<h1 align="center">Mixpanel component for Edgee</h1>
+[![Coverage Status](https://coveralls.io/repos/github/edgee-cloud/mixpanel-component/badge.svg)](https://coveralls.io/github/edgee-cloud/mixpanel-component)
+[![GitHub issues](https://img.shields.io/github/issues/edgee-cloud/mixpanel-component.svg)](https://github.com/edgee-cloud/mixpanel-component/issues)
+[![Edgee Component Registry](https://img.shields.io/badge/Edgee_Component_Registry-Public-green.svg)](https://www.edgee.cloud/edgee/mixpanel)
 
 This is a Rust-based Edgee component that integrates Mixpanel analytics using the Edgee Data Collection protocol. It allows you to track user events, page views, and identify users, sending data to Mixpanel via the `/import` and `/engage` APIs.
 
