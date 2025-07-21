@@ -30,78 +30,78 @@ fn insert_if_nonempty(map: &mut HashMap<String, String>, key: &str, value: &str)
 
 impl Guest for Component {
     fn page(edgee_event: Event, settings_dict: Dict) -> Result<EdgeeRequest, String> {
-            let settings = Settings::new(settings_dict).map_err(|e| e.to_string())?;
+        let settings = Settings::new(settings_dict).map_err(|e| e.to_string())?;
 
-            let mut props = HashMap::new();
+        let mut props = HashMap::new();
 
-            if let Data::Page(ref data) = edgee_event.data {
-                insert_if_nonempty(&mut props, "url", &data.url);
-                insert_if_nonempty(&mut props, "title", &data.title);
-                insert_if_nonempty(&mut props, "path", &data.path);
-                insert_if_nonempty(&mut props, "referrer", &data.referrer);
-                insert_if_nonempty(&mut props, "category", &data.category);
-                insert_if_nonempty(&mut props, "name", &data.name);
+        if let Data::Page(ref data) = edgee_event.data {
+            insert_if_nonempty(&mut props, "url", &data.url);
+            insert_if_nonempty(&mut props, "title", &data.title);
+            insert_if_nonempty(&mut props, "path", &data.path);
+            insert_if_nonempty(&mut props, "referrer", &data.referrer);
+            insert_if_nonempty(&mut props, "category", &data.category);
+            insert_if_nonempty(&mut props, "name", &data.name);
 
-                for (k, v) in &data.properties {
-                    insert_if_nonempty(&mut props, k, v);
-                }
-
-                enrich_with_page_context(&mut props, &edgee_event.context.page);
-                enrich_with_campaign_context(&mut props, &edgee_event.context.campaign);
-                enrich_with_session_context(&mut props, &edgee_event.context.session);
-                enrich_with_client_context(&mut props, &edgee_event.context.client);
-
-                return build_mixpanel_request(&edgee_event, &settings, "Page View", props);
-            }
-
-            Err("Invalid event type for page".into())
-        }
-
-        fn track(edgee_event: Event, settings_dict: Dict) -> Result<EdgeeRequest, String> {
-            let settings = Settings::new(settings_dict).map_err(|e| e.to_string())?;
-            let mut props = HashMap::new();
-
-            if let Data::Track(ref data) = edgee_event.data {
-                for (k, v) in &data.properties {
-                    insert_if_nonempty(&mut props, k, v);
-                }
-
-                enrich_with_page_context(&mut props, &edgee_event.context.page);
-                enrich_with_campaign_context(&mut props, &edgee_event.context.campaign);
-                enrich_with_session_context(&mut props, &edgee_event.context.session);
-                enrich_with_client_context(&mut props, &edgee_event.context.client);
-                return build_mixpanel_request(&edgee_event, &settings, &data.name, props);
-            }
-
-            Err("Invalid event type for track".into())
-        }
-
-        fn user(edgee_event: Event, settings_dict: Dict) -> Result<EdgeeRequest, String> {
-            let settings = Settings::new(settings_dict).map_err(|e| e.to_string())?;
-            let user = &edgee_event.context.user;
-            let client = &edgee_event.context.client;
-
-            let distinct_id = if user.user_id.trim().is_empty() {
-                user.edgee_id.clone()
-            } else {
-                user.user_id.clone()
-            };
-
-            let mut props = HashMap::new();
-            props.insert("$distinct_id".into(), distinct_id.clone());
-            insert_if_nonempty(&mut props, "$ip", &client.ip);
-
-            for (k, v) in &user.properties {
+            for (k, v) in &data.properties {
                 insert_if_nonempty(&mut props, k, v);
             }
 
             enrich_with_page_context(&mut props, &edgee_event.context.page);
             enrich_with_campaign_context(&mut props, &edgee_event.context.campaign);
             enrich_with_session_context(&mut props, &edgee_event.context.session);
-            enrich_with_client_context(&mut props, client);
+            enrich_with_client_context(&mut props, &edgee_event.context.client);
 
-            build_mixpanel_user_request(&settings, distinct_id, props)
+            return build_mixpanel_request(&edgee_event, &settings, "Page View", props);
         }
+
+        Err("Invalid event type for page".into())
+    }
+
+    fn track(edgee_event: Event, settings_dict: Dict) -> Result<EdgeeRequest, String> {
+        let settings = Settings::new(settings_dict).map_err(|e| e.to_string())?;
+        let mut props = HashMap::new();
+
+        if let Data::Track(ref data) = edgee_event.data {
+            for (k, v) in &data.properties {
+                insert_if_nonempty(&mut props, k, v);
+            }
+
+            enrich_with_page_context(&mut props, &edgee_event.context.page);
+            enrich_with_campaign_context(&mut props, &edgee_event.context.campaign);
+            enrich_with_session_context(&mut props, &edgee_event.context.session);
+            enrich_with_client_context(&mut props, &edgee_event.context.client);
+            return build_mixpanel_request(&edgee_event, &settings, &data.name, props);
+        }
+
+        Err("Invalid event type for track".into())
+    }
+
+    fn user(edgee_event: Event, settings_dict: Dict) -> Result<EdgeeRequest, String> {
+        let settings = Settings::new(settings_dict).map_err(|e| e.to_string())?;
+        let user = &edgee_event.context.user;
+        let client = &edgee_event.context.client;
+
+        let distinct_id = if user.user_id.trim().is_empty() {
+            user.edgee_id.clone()
+        } else {
+            user.user_id.clone()
+        };
+
+        let mut props = HashMap::new();
+        props.insert("$distinct_id".into(), distinct_id.clone());
+        insert_if_nonempty(&mut props, "$ip", &client.ip);
+
+        for (k, v) in &user.properties {
+            insert_if_nonempty(&mut props, k, v);
+        }
+
+        enrich_with_page_context(&mut props, &edgee_event.context.page);
+        enrich_with_campaign_context(&mut props, &edgee_event.context.campaign);
+        enrich_with_session_context(&mut props, &edgee_event.context.session);
+        enrich_with_client_context(&mut props, client);
+
+        build_mixpanel_user_request(&settings, distinct_id, props)
+    }
 }
 
 pub struct Settings {
@@ -146,7 +146,10 @@ impl Settings {
     }
 }
 
-fn enrich_with_client_context(props: &mut HashMap<String, String>, client: &crate::exports::edgee::components::data_collection::Client) {
+fn enrich_with_client_context(
+    props: &mut HashMap<String, String>,
+    client: &crate::exports::edgee::components::data_collection::Client,
+) {
     insert_if_nonempty(props, "ip", &client.ip);
     insert_if_nonempty(props, "city", &client.city);
     insert_if_nonempty(props, "country_code", &client.country_code);
@@ -158,18 +161,39 @@ fn enrich_with_client_context(props: &mut HashMap<String, String>, client: &crat
     insert_if_nonempty(props, "os_name", &client.os_name);
     insert_if_nonempty(props, "os_version", &client.os_version);
     insert_if_nonempty(props, "user_agent", &client.user_agent);
-    insert_if_nonempty(props, "user_agent_architecture", &client.user_agent_architecture);
+    insert_if_nonempty(
+        props,
+        "user_agent_architecture",
+        &client.user_agent_architecture,
+    );
     insert_if_nonempty(props, "user_agent_bitness", &client.user_agent_bitness);
-    insert_if_nonempty(props, "user_agent_full_version_list", &client.user_agent_full_version_list);
-    insert_if_nonempty(props, "user_agent_version_list", &client.user_agent_version_list);
+    insert_if_nonempty(
+        props,
+        "user_agent_full_version_list",
+        &client.user_agent_full_version_list,
+    );
+    insert_if_nonempty(
+        props,
+        "user_agent_version_list",
+        &client.user_agent_version_list,
+    );
     insert_if_nonempty(props, "user_agent_mobile", &client.user_agent_mobile);
     insert_if_nonempty(props, "user_agent_model", &client.user_agent_model);
     props.insert("screen_width".to_string(), client.screen_width.to_string());
-    props.insert("screen_height".to_string(), client.screen_height.to_string());
-    props.insert("screen_density".to_string(), client.screen_density.to_string());
+    props.insert(
+        "screen_height".to_string(),
+        client.screen_height.to_string(),
+    );
+    props.insert(
+        "screen_density".to_string(),
+        client.screen_density.to_string(),
+    );
 }
 
-fn enrich_with_page_context(props: &mut HashMap<String, String>, page: &crate::exports::edgee::components::data_collection::PageData) {
+fn enrich_with_page_context(
+    props: &mut HashMap<String, String>,
+    page: &crate::exports::edgee::components::data_collection::PageData,
+) {
     insert_if_nonempty(props, "url", &page.url);
     insert_if_nonempty(props, "path", &page.path);
     insert_if_nonempty(props, "title", &page.title);
@@ -188,17 +212,27 @@ fn enrich_with_page_context(props: &mut HashMap<String, String>, page: &crate::e
     }
 }
 
-fn enrich_with_campaign_context(props: &mut HashMap<String, String>, campaign: &crate::exports::edgee::components::data_collection::Campaign) {
+fn enrich_with_campaign_context(
+    props: &mut HashMap<String, String>,
+    campaign: &crate::exports::edgee::components::data_collection::Campaign,
+) {
     insert_if_nonempty(props, "campaign_name", &campaign.name);
     insert_if_nonempty(props, "campaign_source", &campaign.source);
     insert_if_nonempty(props, "campaign_medium", &campaign.medium);
     insert_if_nonempty(props, "campaign_term", &campaign.term);
     insert_if_nonempty(props, "campaign_content", &campaign.content);
     insert_if_nonempty(props, "campaign_creative_format", &campaign.creative_format);
-    insert_if_nonempty(props, "campaign_marketing_tactic", &campaign.marketing_tactic);
+    insert_if_nonempty(
+        props,
+        "campaign_marketing_tactic",
+        &campaign.marketing_tactic,
+    );
 }
 
-fn enrich_with_session_context(props: &mut HashMap<String, String>, session: &crate::exports::edgee::components::data_collection::Session) {
+fn enrich_with_session_context(
+    props: &mut HashMap<String, String>,
+    session: &crate::exports::edgee::components::data_collection::Session,
+) {
     insert_if_nonempty(props, "session_id", &session.session_id);
     insert_if_nonempty(props, "previous_session_id", &session.previous_session_id);
     props.insert("session_count".into(), session.session_count.to_string());
