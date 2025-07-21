@@ -22,63 +22,77 @@ struct Component;
 * The EdgeeRequest contains the method, url, headers, and body of the request.
 */
 
+fn insert_if_nonempty(map: &mut HashMap<String, String>, key: &str, value: &str) {
+    if !value.trim().is_empty() {
+        map.insert(key.to_string(), value.to_string());
+    }
+}
+
 impl Guest for Component {
     fn page(edgee_event: Event, settings_dict: Dict) -> Result<EdgeeRequest, String> {
-        let settings = Settings::new(settings_dict).map_err(|e| e.to_string())?;
+            let settings = Settings::new(settings_dict).map_err(|e| e.to_string())?;
 
-        let mut props = HashMap::new();
+            let mut props = HashMap::new();
 
-        if let Data::Page(ref data) = edgee_event.data {
-            props.insert("url".into(), data.url.clone());
-            props.insert("title".into(), data.title.clone());
-            props.insert("path".into(), data.path.clone());
-            props.insert("referrer".into(), data.referrer.clone());
-            props.insert("category".into(), data.category.clone());
-            props.insert("name".into(), data.name.clone());
+            if let Data::Page(ref data) = edgee_event.data {
+                insert_if_nonempty(&mut props, "url", &data.url);
+                insert_if_nonempty(&mut props, "title", &data.title);
+                insert_if_nonempty(&mut props, "path", &data.path);
+                insert_if_nonempty(&mut props, "referrer", &data.referrer);
+                insert_if_nonempty(&mut props, "category", &data.category);
+                insert_if_nonempty(&mut props, "name", &data.name);
 
-            for (k, v) in &data.properties {
-                props.insert(k.clone(), v.clone());
+                for (k, v) in &data.properties {
+                    insert_if_nonempty(&mut props, k, v);
+                }
+
+                enrich_with_client_context(&mut props, &edgee_event.context.client);
+
+                return build_mixpanel_request(&edgee_event, &settings, "Page View", props);
             }
 
-            return build_mixpanel_request(&edgee_event, &settings, "Page View", props);
+            Err("Invalid event type for page".into())
         }
 
-        Err("Invalid event type for page".into())
-    }
+        fn track(edgee_event: Event, settings_dict: Dict) -> Result<EdgeeRequest, String> {
+            let settings = Settings::new(settings_dict).map_err(|e| e.to_string())?;
+            let mut props = HashMap::new();
 
-    fn track(edgee_event: Event, settings_dict: Dict) -> Result<EdgeeRequest, String> {
-        let settings = Settings::new(settings_dict).map_err(|e| e.to_string())?;
-        let mut props = HashMap::new();
+            if let Data::Track(ref data) = edgee_event.data {
+                for (k, v) in &data.properties {
+                    insert_if_nonempty(&mut props, k, v);
+                }
 
-        if let Data::Track(ref data) = edgee_event.data {
-            for (k, v) in &data.properties {
-                props.insert(k.clone(), v.clone());
+                enrich_with_client_context(&mut props, &edgee_event.context.client);
+                return build_mixpanel_request(&edgee_event, &settings, &data.name, props);
             }
-            return build_mixpanel_request(&edgee_event, &settings, &data.name, props);
+
+            Err("Invalid event type for track".into())
         }
 
-        Err("Invalid event type for track".into())
-    }
+        fn user(edgee_event: Event, settings_dict: Dict) -> Result<EdgeeRequest, String> {
+            let settings = Settings::new(settings_dict).map_err(|e| e.to_string())?;
+            let user = &edgee_event.context.user;
+            let client = &edgee_event.context.client;
 
-    fn user(edgee_event: Event, settings_dict: Dict) -> Result<EdgeeRequest, String> {
-        let settings = Settings::new(settings_dict).map_err(|e| e.to_string())?;
-        let user = &edgee_event.context.user;
+            let distinct_id = if user.user_id.trim().is_empty() {
+                user.edgee_id.clone()
+            } else {
+                user.user_id.clone()
+            };
 
-        let distinct_id = if user.user_id.trim().is_empty() {
-            user.edgee_id.clone()
-        } else {
-            user.user_id.clone()
-        };
+            let mut props = HashMap::new();
+            props.insert("$distinct_id".into(), distinct_id.clone());
+            insert_if_nonempty(&mut props, "$ip", &client.ip);
 
-        let mut props = HashMap::new();
-        props.insert("$distinct_id".into(), distinct_id.clone());
-        props.insert("$ip".into(), edgee_event.context.client.ip.clone());
-        for (k, v) in &user.properties {
-            props.insert(k.clone(), v.clone());
+            for (k, v) in &user.properties {
+                insert_if_nonempty(&mut props, k, v);
+            }
+
+            enrich_with_client_context(&mut props, client);
+
+            build_mixpanel_user_request(&settings, distinct_id, props)
         }
-
-        build_mixpanel_user_request(&settings, distinct_id, props)
-    }
 }
 
 pub struct Settings {
@@ -121,6 +135,29 @@ impl Settings {
             region,
         })
     }
+}
+
+fn enrich_with_client_context(props: &mut HashMap<String, String>, client: &crate::exports::edgee::components::data_collection::Client) {
+    insert_if_nonempty(props, "ip", &client.ip);
+    insert_if_nonempty(props, "city", &client.city);
+    insert_if_nonempty(props, "country_code", &client.country_code);
+    insert_if_nonempty(props, "country_name", &client.country_name);
+    insert_if_nonempty(props, "continent", &client.continent);
+    insert_if_nonempty(props, "region", &client.region);
+    insert_if_nonempty(props, "locale", &client.locale);
+    insert_if_nonempty(props, "timezone", &client.timezone);
+    insert_if_nonempty(props, "os_name", &client.os_name);
+    insert_if_nonempty(props, "os_version", &client.os_version);
+    insert_if_nonempty(props, "user_agent", &client.user_agent);
+    insert_if_nonempty(props, "user_agent_architecture", &client.user_agent_architecture);
+    insert_if_nonempty(props, "user_agent_bitness", &client.user_agent_bitness);
+    insert_if_nonempty(props, "user_agent_full_version_list", &client.user_agent_full_version_list);
+    insert_if_nonempty(props, "user_agent_version_list", &client.user_agent_version_list);
+    insert_if_nonempty(props, "user_agent_mobile", &client.user_agent_mobile);
+    insert_if_nonempty(props, "user_agent_model", &client.user_agent_model);
+    props.insert("screen_width".to_string(), client.screen_width.to_string());
+    props.insert("screen_height".to_string(), client.screen_height.to_string());
+    props.insert("screen_density".to_string(), client.screen_density.to_string());
 }
 
 fn build_mixpanel_request(
