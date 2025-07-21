@@ -46,6 +46,9 @@ impl Guest for Component {
                     insert_if_nonempty(&mut props, k, v);
                 }
 
+                enrich_with_page_context(&mut props, &edgee_event.context.page);
+                enrich_with_campaign_context(&mut props, &edgee_event.context.campaign);
+                enrich_with_session_context(&mut props, &edgee_event.context.session);
                 enrich_with_client_context(&mut props, &edgee_event.context.client);
 
                 return build_mixpanel_request(&edgee_event, &settings, "Page View", props);
@@ -63,6 +66,9 @@ impl Guest for Component {
                     insert_if_nonempty(&mut props, k, v);
                 }
 
+                enrich_with_page_context(&mut props, &edgee_event.context.page);
+                enrich_with_campaign_context(&mut props, &edgee_event.context.campaign);
+                enrich_with_session_context(&mut props, &edgee_event.context.session);
                 enrich_with_client_context(&mut props, &edgee_event.context.client);
                 return build_mixpanel_request(&edgee_event, &settings, &data.name, props);
             }
@@ -89,6 +95,9 @@ impl Guest for Component {
                 insert_if_nonempty(&mut props, k, v);
             }
 
+            enrich_with_page_context(&mut props, &edgee_event.context.page);
+            enrich_with_campaign_context(&mut props, &edgee_event.context.campaign);
+            enrich_with_session_context(&mut props, &edgee_event.context.session);
             enrich_with_client_context(&mut props, client);
 
             build_mixpanel_user_request(&settings, distinct_id, props)
@@ -158,6 +167,44 @@ fn enrich_with_client_context(props: &mut HashMap<String, String>, client: &crat
     props.insert("screen_width".to_string(), client.screen_width.to_string());
     props.insert("screen_height".to_string(), client.screen_height.to_string());
     props.insert("screen_density".to_string(), client.screen_density.to_string());
+}
+
+fn enrich_with_page_context(props: &mut HashMap<String, String>, page: &crate::exports::edgee::components::data_collection::PageData) {
+    insert_if_nonempty(props, "url", &page.url);
+    insert_if_nonempty(props, "path", &page.path);
+    insert_if_nonempty(props, "title", &page.title);
+    insert_if_nonempty(props, "category", &page.category);
+    insert_if_nonempty(props, "name", &page.name);
+    insert_if_nonempty(props, "referrer", &page.referrer);
+
+    if !page.keywords.is_empty() {
+        if let Ok(serialized_keywords) = serde_json::to_string(&page.keywords) {
+            props.insert("keywords".into(), serialized_keywords);
+        }
+    }
+
+    for (k, v) in &page.properties {
+        insert_if_nonempty(props, k, v);
+    }
+}
+
+fn enrich_with_campaign_context(props: &mut HashMap<String, String>, campaign: &crate::exports::edgee::components::data_collection::Campaign) {
+    insert_if_nonempty(props, "campaign_name", &campaign.name);
+    insert_if_nonempty(props, "campaign_source", &campaign.source);
+    insert_if_nonempty(props, "campaign_medium", &campaign.medium);
+    insert_if_nonempty(props, "campaign_term", &campaign.term);
+    insert_if_nonempty(props, "campaign_content", &campaign.content);
+    insert_if_nonempty(props, "campaign_creative_format", &campaign.creative_format);
+    insert_if_nonempty(props, "campaign_marketing_tactic", &campaign.marketing_tactic);
+}
+
+fn enrich_with_session_context(props: &mut HashMap<String, String>, session: &crate::exports::edgee::components::data_collection::Session) {
+    insert_if_nonempty(props, "session_id", &session.session_id);
+    insert_if_nonempty(props, "previous_session_id", &session.previous_session_id);
+    props.insert("session_count".into(), session.session_count.to_string());
+    props.insert("session_start".into(), session.session_start.to_string());
+    props.insert("first_seen".into(), session.first_seen.to_string());
+    props.insert("last_seen".into(), session.last_seen.to_string());
 }
 
 fn build_mixpanel_request(
