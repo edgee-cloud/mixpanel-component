@@ -2,15 +2,13 @@ manifest-version = 1
 
 [component]
 name = "Mixpanel"
-version = "1.0.0"
+version = "1.2.0"
 type = "data-collection"
 language = "Rust"
 category = "data-collection"
 subcategory = "analytics"
 description = """
-**Mixpanel Edgee Component**
-
-This Rust-based component lets you capture **events**, **page views**, and **user profiles** directly at the edge using [Mixpanel's HTTP API](https://developer.mixpanel.com/reference/overview).
+This component lets you capture **events**, **page views**, and **user profiles** directly at the edge using [Mixpanel's HTTP API](https://developer.mixpanel.com/reference/overview).
 Optimized and focused on performance, it avoids traditional SDKs by leveraging Edgee's WebAssembly runtime.
 
 - Supports: `track`, `page`, `user`

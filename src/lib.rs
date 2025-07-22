@@ -1,8 +1,10 @@
+mod helpers;
 use crate::exports::edgee::components::data_collection::Data;
 use crate::exports::edgee::components::data_collection::{Dict, EdgeeRequest, Event, HttpMethod};
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 use exports::edgee::components::data_collection::Guest;
+use helpers::{insert_if_nonempty, mixpanel_endpoint, parse_browser_info};
 use std::collections::HashMap;
 
 wit_bindgen::generate!({world: "data-collection", path: ".edgee/wit", generate_all});
@@ -29,16 +31,14 @@ impl Guest for Component {
         let mut props = HashMap::new();
 
         if let Data::Page(ref data) = edgee_event.data {
-            props.insert("url".into(), data.url.clone());
-            props.insert("title".into(), data.title.clone());
-            props.insert("path".into(), data.path.clone());
-            props.insert("referrer".into(), data.referrer.clone());
-            props.insert("category".into(), data.category.clone());
-            props.insert("name".into(), data.name.clone());
-
             for (k, v) in &data.properties {
-                props.insert(k.clone(), v.clone());
+                insert_if_nonempty(&mut props, k, v);
             }
+
+            enrich_with_page_context(&mut props, &edgee_event.context.page);
+            enrich_with_campaign_context(&mut props, &edgee_event.context.campaign);
+            enrich_with_session_context(&mut props, &edgee_event.context.session);
+            enrich_with_client_context(&mut props, &edgee_event.context.client);
 
             return build_mixpanel_request(&edgee_event, &settings, "Page View", props);
         }
@@ -52,8 +52,13 @@ impl Guest for Component {
 
         if let Data::Track(ref data) = edgee_event.data {
             for (k, v) in &data.properties {
-                props.insert(k.clone(), v.clone());
+                insert_if_nonempty(&mut props, k, v);
             }
+
+            enrich_with_page_context(&mut props, &edgee_event.context.page);
+            enrich_with_campaign_context(&mut props, &edgee_event.context.campaign);
+            enrich_with_session_context(&mut props, &edgee_event.context.session);
+            enrich_with_client_context(&mut props, &edgee_event.context.client);
             return build_mixpanel_request(&edgee_event, &settings, &data.name, props);
         }
 
@@ -63,6 +68,7 @@ impl Guest for Component {
     fn user(edgee_event: Event, settings_dict: Dict) -> Result<EdgeeRequest, String> {
         let settings = Settings::new(settings_dict).map_err(|e| e.to_string())?;
         let user = &edgee_event.context.user;
+        let client = &edgee_event.context.client;
 
         let distinct_id = if user.user_id.trim().is_empty() {
             user.edgee_id.clone()
@@ -72,10 +78,17 @@ impl Guest for Component {
 
         let mut props = HashMap::new();
         props.insert("$distinct_id".into(), distinct_id.clone());
-        props.insert("$ip".into(), edgee_event.context.client.ip.clone());
+        props.insert("$user_id".into(), distinct_id.clone());
+        insert_if_nonempty(&mut props, "$ip", &client.ip);
+
         for (k, v) in &user.properties {
-            props.insert(k.clone(), v.clone());
+            insert_if_nonempty(&mut props, k, v);
         }
+
+        enrich_with_page_context(&mut props, &edgee_event.context.page);
+        enrich_with_campaign_context(&mut props, &edgee_event.context.campaign);
+        enrich_with_session_context(&mut props, &edgee_event.context.session);
+        enrich_with_client_context(&mut props, client);
 
         build_mixpanel_user_request(&settings, distinct_id, props)
     }
@@ -123,6 +136,104 @@ impl Settings {
     }
 }
 
+fn enrich_with_client_context(
+    props: &mut HashMap<String, String>,
+    client: &crate::exports::edgee::components::data_collection::Client,
+) {
+    let (browser_name, browser_version) = parse_browser_info(&client.user_agent);
+
+    if let Some(name) = browser_name {
+        props.insert("$browser".into(), name);
+    }
+    if let Some(version) = browser_version {
+        props.insert("$browser_version".into(), version);
+    }
+
+    insert_if_nonempty(props, "ip", &client.ip);
+    insert_if_nonempty(props, "$city", &client.city);
+    insert_if_nonempty(props, "$region", &client.region);
+    insert_if_nonempty(props, "mp_country_code", &client.country_code);
+    insert_if_nonempty(props, "$country_code", &client.country_code);
+    insert_if_nonempty(props, "country_name", &client.country_name);
+    insert_if_nonempty(props, "continent", &client.continent);
+    insert_if_nonempty(props, "locale", &client.locale);
+    insert_if_nonempty(props, "$timezone", &client.timezone);
+    insert_if_nonempty(props, "$os", &client.os_name);
+    insert_if_nonempty(props, "$os_version", &client.os_version);
+    insert_if_nonempty(props, "user_agent", &client.user_agent);
+    insert_if_nonempty(
+        props,
+        "user_agent_architecture",
+        &client.user_agent_architecture,
+    );
+    insert_if_nonempty(props, "user_agent_bitness", &client.user_agent_bitness);
+    insert_if_nonempty(
+        props,
+        "user_agent_full_version_list",
+        &client.user_agent_full_version_list,
+    );
+    insert_if_nonempty(
+        props,
+        "user_agent_version_list",
+        &client.user_agent_version_list,
+    );
+    insert_if_nonempty(props, "user_agent_mobile", &client.user_agent_mobile);
+    insert_if_nonempty(props, "user_agent_model", &client.user_agent_model);
+    props.insert("$screen_width".to_string(), client.screen_width.to_string());
+    props.insert(
+        "$screen_height".to_string(),
+        client.screen_height.to_string(),
+    );
+    props.insert("$screen_dpi".to_string(), client.screen_density.to_string());
+}
+
+fn enrich_with_page_context(
+    props: &mut HashMap<String, String>,
+    page: &crate::exports::edgee::components::data_collection::PageData,
+) {
+    insert_if_nonempty(props, "$current_url", &page.url);
+    insert_if_nonempty(props, "path", &page.path);
+    insert_if_nonempty(props, "title", &page.title);
+    insert_if_nonempty(props, "category", &page.category);
+    insert_if_nonempty(props, "name", &page.name);
+    insert_if_nonempty(props, "$referrer", &page.referrer);
+
+    if !page.keywords.is_empty() {
+        if let Ok(serialized_keywords) = serde_json::to_string(&page.keywords) {
+            props.insert("mp_keyword".into(), serialized_keywords);
+        }
+    }
+
+    for (k, v) in &page.properties {
+        insert_if_nonempty(props, k, v);
+    }
+}
+
+fn enrich_with_campaign_context(
+    props: &mut HashMap<String, String>,
+    campaign: &crate::exports::edgee::components::data_collection::Campaign,
+) {
+    insert_if_nonempty(props, "utm_name", &campaign.name);
+    insert_if_nonempty(props, "utm_source", &campaign.source);
+    insert_if_nonempty(props, "utm_medium", &campaign.medium);
+    insert_if_nonempty(props, "utm_term", &campaign.term);
+    insert_if_nonempty(props, "utm_content", &campaign.content);
+    insert_if_nonempty(props, "utm_creative_format", &campaign.creative_format);
+    insert_if_nonempty(props, "utm_marketing_tactic", &campaign.marketing_tactic);
+}
+
+fn enrich_with_session_context(
+    props: &mut HashMap<String, String>,
+    session: &crate::exports::edgee::components::data_collection::Session,
+) {
+    insert_if_nonempty(props, "session_id", &session.session_id);
+    insert_if_nonempty(props, "previous_session_id", &session.previous_session_id);
+    props.insert("session_count".into(), session.session_count.to_string());
+    props.insert("session_start".into(), session.session_start.to_string());
+    props.insert("$first_seen".into(), session.first_seen.to_string());
+    props.insert("$last_seen".into(), session.last_seen.to_string());
+}
+
 fn build_mixpanel_request(
     event: &Event,
     settings: &Settings,
@@ -138,7 +249,14 @@ fn build_mixpanel_request(
         user.user_id.clone()
     };
 
+    props.insert(
+        "$mp_api_endpoint".into(),
+        mixpanel_endpoint(&settings.region).into(),
+    );
+    props.insert("$import".into(), serde_json::json!(true));
     props.insert("token".into(), settings.api_secret.clone().into());
+    props.insert("$distinct_id".into(), distinct_id.clone().into());
+    props.insert("$user_id".into(), distinct_id.clone().into());
     props.insert("distinct_id".into(), distinct_id.into());
     props.insert("time".into(), serde_json::json!(event.timestamp));
     props.insert("$insert_id".into(), serde_json::json!(event.uuid.clone()));
@@ -180,10 +298,15 @@ fn build_mixpanel_user_request(
     distinct_id: String,
     props: HashMap<String, String>,
 ) -> Result<EdgeeRequest, String> {
-    let set_props: serde_json::Map<String, serde_json::Value> = props
+    let mut set_props: serde_json::Map<String, serde_json::Value> = props
         .into_iter()
         .map(|(k, v)| (k, serde_json::Value::String(v)))
         .collect();
+
+    set_props.insert(
+        "$mp_api_endpoint".into(),
+        mixpanel_endpoint(&settings.region).into(),
+    );
 
     let payload = serde_json::json!([{
         "$distinct_id": distinct_id,
@@ -391,6 +514,6 @@ mod tests {
         assert!(req.url.contains("project_id=987654"));
         assert!(req.body.contains("\"event\":\"Page View\""));
         assert!(req.body.contains("\"token\":\"abc123\""));
-        assert!(req.body.contains("\"url\""));
+        assert!(req.body.contains("\"$current_url\""));
     }
 }
