@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use regex::Regex;
+use std::collections::HashMap;
 
 pub fn insert_if_nonempty(map: &mut HashMap<String, String>, key: &str, value: &str) {
     if !value.trim().is_empty() {

@@ -1,10 +1,10 @@
 mod helpers;
-use helpers::{insert_if_nonempty, parse_browser_info, mixpanel_endpoint};
 use crate::exports::edgee::components::data_collection::Data;
 use crate::exports::edgee::components::data_collection::{Dict, EdgeeRequest, Event, HttpMethod};
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 use exports::edgee::components::data_collection::Guest;
+use helpers::{insert_if_nonempty, mixpanel_endpoint, parse_browser_info};
 use std::collections::HashMap;
 
 wit_bindgen::generate!({world: "data-collection", path: ".edgee/wit", generate_all});
@@ -31,7 +31,6 @@ impl Guest for Component {
         let mut props = HashMap::new();
 
         if let Data::Page(ref data) = edgee_event.data {
-
             for (k, v) in &data.properties {
                 insert_if_nonempty(&mut props, k, v);
             }
@@ -185,10 +184,7 @@ fn enrich_with_client_context(
         "$screen_height".to_string(),
         client.screen_height.to_string(),
     );
-    props.insert(
-        "$screen_dpi".to_string(),
-        client.screen_density.to_string(),
-    );
+    props.insert("$screen_dpi".to_string(), client.screen_density.to_string());
 }
 
 fn enrich_with_page_context(
@@ -223,11 +219,7 @@ fn enrich_with_campaign_context(
     insert_if_nonempty(props, "utm_term", &campaign.term);
     insert_if_nonempty(props, "utm_content", &campaign.content);
     insert_if_nonempty(props, "utm_creative_format", &campaign.creative_format);
-    insert_if_nonempty(
-        props,
-        "utm_marketing_tactic",
-        &campaign.marketing_tactic,
-    );
+    insert_if_nonempty(props, "utm_marketing_tactic", &campaign.marketing_tactic);
 }
 
 fn enrich_with_session_context(
@@ -257,7 +249,10 @@ fn build_mixpanel_request(
         user.user_id.clone()
     };
 
-    props.insert("$mp_api_endpoint".into(), mixpanel_endpoint(&settings.region).into());
+    props.insert(
+        "$mp_api_endpoint".into(),
+        mixpanel_endpoint(&settings.region).into(),
+    );
     props.insert("$import".into(), serde_json::json!(true));
     props.insert("token".into(), settings.api_secret.clone().into());
     props.insert("$distinct_id".into(), distinct_id.clone().into());
@@ -308,7 +303,10 @@ fn build_mixpanel_user_request(
         .map(|(k, v)| (k, serde_json::Value::String(v)))
         .collect();
 
-    set_props.insert("$mp_api_endpoint".into(), mixpanel_endpoint(&settings.region).into());
+    set_props.insert(
+        "$mp_api_endpoint".into(),
+        mixpanel_endpoint(&settings.region).into(),
+    );
 
     let payload = serde_json::json!([{
         "$distinct_id": distinct_id,
