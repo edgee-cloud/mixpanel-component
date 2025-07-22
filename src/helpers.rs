@@ -29,7 +29,7 @@ pub fn parse_browser_info(user_agent: &str) -> (Option<String>, Option<String>) 
 }
 
 pub fn mixpanel_endpoint(region: &str) -> String {
-    format!("https://{}.mixpanel.com", region)
+    format!("https://{region}.mixpanel.com")
 }
 
 #[cfg(test)]

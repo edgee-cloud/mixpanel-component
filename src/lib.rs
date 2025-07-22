@@ -274,7 +274,7 @@ fn build_mixpanel_request(
 
     let mut url = format!("https://{}.mixpanel.com/import?strict=1", settings.region);
     if let Some(id) = &settings.project_id {
-        url.push_str(&format!("&project_id={}", id));
+        url.push_str(format_args!("&project_id={id}").as_str());
     }
 
     let encoded = STANDARD.encode(format!("{}:", settings.api_secret).as_bytes());
