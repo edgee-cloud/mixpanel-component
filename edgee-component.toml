@@ -8,12 +8,42 @@ language = "Rust"
 category = "data-collection"
 subcategory = "analytics"
 description = """
-This component lets you capture **events**, **page views**, and **user profiles** directly at the edge using [Mixpanel's HTTP API](https://developer.mixpanel.com/reference/overview).
-Optimized and focused on performance, it avoids traditional SDKs by leveraging Edgee's WebAssembly runtime.
+## Overview
 
-- Supports: `track`, `page`, `user`
-- Targets: Mixpanel `/import` and `/engage` endpoints
-- [Documentation & Source](https://github.com/edgee-cloud/mixpanel-component)
+The **Mixpanel** component by Edgee enables server-side analytics by sending events, page views, and user profiles directly to Mixpanel's HTTP API from the edge.
+Optimized for performance, it leverages Edgee's WebAssembly runtime to avoid traditional SDKs, ensuring fast and efficient data processing.
+
+---
+
+## Key Features & Benefits
+
+### Features
+
+- **Multi-Event Support**: Supports `track`, `page`, and `user` events.
+- **Mixpanel API Integration**: Targets Mixpanel's `/import` and `/engage` endpoints.
+- **Wasm Performance**: Built using Rust and compiled to WebAssembly for high performance.
+- **Lightweight Deployment**: Minimal client-side dependencies.
+- **Edgee Data Layer Ready**: Easy integration with Edgee's Data Layer.
+
+### Benefits
+
+- **Data Accuracy**: Enhanced data accuracy with server-side event processing.
+- **Low Latency**: Reduced latency by processing data closer to the user.
+- **Simplified Setup**: No need for complex SDKs or client-heavy configurations.
+- **Scalability**: Improved scalability and maintainability.
+
+---
+
+## Use Cases
+
+- **User Interaction Tracking**: Monitor and analyze user behavior and engagement.
+- **Page View Analytics**: Capture page visits and navigation paths.
+- **User Profile Management**: Track and update user attributes and sessions.
+- **Edge Analytics**: Integrate Mixpanel in edge-first computing environments.
+
+---
+
+Additional resources: [Mixpanel Product Analytics Platform](https://mixpanel.com/)
 """
 documentation = "https://github.com/edgee-cloud/mixpanel-component"
 repository = "https://github.com/edgee-cloud/mixpanel-component"
