@@ -8,10 +8,6 @@ language = "Rust"
 category = "data-collection"
 subcategory = "analytics"
 description = """
-# Mixpanel Component
-
-[https://www.edgee.cloud/edgee/mixpanel](https://www.edgee.cloud/edgee/mixpanel)
-
 ## Overview
 
 The **Mixpanel** component by Edgee enables server-side analytics by sending events, page views, and user profiles directly to Mixpanel's HTTP API from the edge.
