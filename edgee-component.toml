@@ -2,7 +2,7 @@ manifest-version = 1
 
 [component]
 name = "Mixpanel"
-version = "1.2.0"
+version = "1.2.1"
 type = "data-collection"
 language = "Rust"
 category = "data-collection"
